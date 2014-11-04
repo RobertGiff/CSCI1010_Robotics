@@ -6,7 +6,6 @@ import lejos.nxt.*;
 import lejos.robotics.navigation.*;
 import lejos.robotics.localization.OdometryPoseProvider;
 
-
 public class mazeNav extends Thread{
 
 	//Setting up sensors
@@ -21,11 +20,12 @@ public class mazeNav extends Thread{
 	public static void mazeRunner() throws Exception{
 		
 		while(true) {
-			move(); // move 11.5 inches while staying on the line. Makes use of the private method recenter(); 
+			//move(); // move 11.5 inches while staying on the line. Makes use of the private method recenter(); 
 			see();
 		}
 	} 
 	
+	/*	USE IF YOU NEED MORE RECENTERING
 	private static void move() {// Method to move the robot
 		pilot.setRotateSpeed(400);
 		//pilot.setAcceleration(1900); set this if needed
@@ -40,10 +40,70 @@ public class mazeNav extends Thread{
 			displayClear(); 
 		}
 	}
-	
-	private static void see() {// Method to gather data surounding the robot
-		//TODO SO FUCKING LONG
+	*/
+	private static void move () {
+		pilot.setRotateSpeed(400);
+		//pilot.setAcceleration(1900); set this if needed
+		pilot.setTravelSpeed(3);
+		
+		pilot.travel(11.5);
+		recenter();
 	}
+	
+	private static void see() {// Method to gather data surrounding the robot
+		//calculate the distances left, front right. Using 8 different readings and taking the average of all
+		int[]   leftDistances = new int[8];
+		int[] frontDistances = new int[8];
+		int[] rightDistances = new int[8];
+		int avgLeft, avgFront, avgRight;
+		
+		getData(leftDistances, frontDistances, rightDistances); // Fills all three arrays
+		avgLeft = calcAverages(leftDistances); // We now know if there is a wall in front of us or not.
+		avgFront = calcAverages(frontDistances);
+		avgRight = calcAverages(rightDistances);
+		
+		//For debugging
+		LCD.drawInt(avgLeft, 0, 0);
+		LCD.drawInt(avgFront, 0, 1);
+		LCD.drawInt(avgRight, 0, 2);
+		try {
+			Thread.sleep(500);
+		} catch (Exception e) {
+			//ehh...I don't like errors
+		}
+		LCD.clear();
+		
+		
+		/*
+		* OUR THRESHOLD IS 2. 
+		* Anything above should not be considered a wall, thus open space
+		* 2 or less is a wall
+		*
+		* Depending on how many open spaces we have, and where, we take action accordingly
+		*/
+	}
+	
+	private static void getData(int[] leftDistances, int[] frontDistances, int[] rightDistances) {
+		Motor.C.setSpeed(100);
+		
+		// Filling the array
+		sight.getDistances(leftDistances);
+		Motor.C.rotate(-90); // Rotates to the front
+		sight.getDistances(frontDistances);
+		Motor.C.rotate(-90);	// Rotates to the right
+		sight.getDistances(rightDistances);
+		Motor.C.rotate(180); // Rotates back to starting left position
+	}
+	
+	private static int calcAverages(int[] data) {
+		double total = 0.0;
+		int avg;
+		for(int i = 0; i < data.length; i++) {
+			total += data[i]; 
+		}
+		avg = (int) (total / data.length);
+		return avg;
+	} 
   
 	private static void recenter() {
 		boolean onLine = false;
@@ -91,7 +151,7 @@ public class mazeNav extends Thread{
    public static void main (String[] args) throws Exception {
    
 		// Starts maze navigation
-		mazeRunner(); //Starting maze run
+		mazeRunner();
 		
 	}
 }
